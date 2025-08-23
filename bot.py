@@ -41,8 +41,8 @@ TOPICS: Dict[str, Dict] = {
         "voice": f"{ASSETS_VOICE}/phishing.ogg",
     },
     "password": {
-        "keywords": ["password", "passcode", "credential"],
-        "text": "🔐 Password Tips:\n• Use a password manager.\n• Make them long (14+ chars).\n• Don’t reuse passwords.\n• Combine with 2FA.",
+        "keywords": ["password", "passcode", "credential", "ពាក្យសម្ងាត់","សុវត្តិភាព", "login", "register", "create account"],
+        "text": "🔐 Password Tips:\n• Use a password manager.\n• Make them long (14+ chars).\n• កុំប្រើលេខសម្ងាត់ដដែលៗ.\n• Combine with 2FA.",
         "image": f"{ASSETS_IMG}/password.jpg",
         "voice": f"{ASSETS_VOICE}/password.ogg",
     },
