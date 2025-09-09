@@ -71,7 +71,7 @@ TOPICS: Dict[str, Dict] = {
                 "• Always turn off 'Auto-Connect to Wi-Fi' on your phone.\n"
                 "• Check the official Wi-Fi name with staff (hackers often make fake hotspots).\n"
                 "• Prefer using your mobile data when handling important tasks.",
-        "image": f"{ASSETS_IMG}/wifi.jpg",
+        "image": f"{ASSETS_IMG}/wi-fi.png",
         "voice": f"{ASSETS_VOICE}/wifi.ogg",
     },
         "data-security": {
