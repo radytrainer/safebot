@@ -1,8 +1,10 @@
 import os
 import logging
+import datetime
+import random
 from dotenv import load_dotenv
 from typing import Dict, List
-
+from telegram.ext import JobQueue
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -170,6 +172,56 @@ async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "I cannot process voice messages yet. Please type your question instead."
     )
 
+# ── Daily Tips ───────────────────────────────────────────────
+
+async def send_daily_tip(context: ContextTypes.DEFAULT_TYPE):
+    """Send a random tip to subscribed users"""
+    job = context.job
+    chat_id = job.chat_id
+
+    key = random.choice(TOPIC_ORDER)  # pick random topic
+    topic = TOPICS[key]
+
+    await context.bot.send_message(chat_id=chat_id, text=f"🔔 Daily Security Tip:\n\n{topic['text']}")
+    if topic.get("image") and os.path.exists(topic["image"]):
+        await context.bot.send_photo(chat_id=chat_id, photo=topic["image"])
+
+
+async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Subscribe user to daily tips"""
+    chat_id = update.message.chat_id
+    job_queue: JobQueue = context.job_queue
+
+    # remove old job if exists
+    current_jobs = job_queue.get_jobs_by_name(str(chat_id))
+    for job in current_jobs:
+        job.schedule_removal()
+
+    # schedule new job (every day at 9AM)
+    job_queue.run_daily(
+        send_daily_tip,
+        time=datetime.time(hour=9, minute=0),
+        chat_id=chat_id,
+        name=str(chat_id),
+    )
+
+    await update.message.reply_text("✅ You are subscribed! You’ll get a daily security tip at 9AM.")
+
+
+async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Unsubscribe user from daily tips"""
+    chat_id = update.message.chat_id
+    job_queue: JobQueue = context.job_queue
+
+    current_jobs = job_queue.get_jobs_by_name(str(chat_id))
+    if not current_jobs:
+        await update.message.reply_text("❌ You are not subscribed.")
+        return
+
+    for job in current_jobs:
+        job.schedule_removal()
+
+    await update.message.reply_text("🚫 Subscription canceled. You won’t receive daily tips anymore.")
 
 # ── Main ────────────────────────────────────────────────────────────────
 def main():
@@ -177,13 +229,16 @@ def main():
         raise RuntimeError("Missing TELEGRAM_TOKEN in .env")
 
     app = Application.builder().token(TOKEN).build()
-
+    
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.add_handler(MessageHandler(filters.PHOTO, on_photo))
     app.add_handler(MessageHandler(filters.VOICE, on_voice))
     app.add_handler(CallbackQueryHandler(on_callback))
+    app.add_handler(CommandHandler("subscribe", subscribe))
+    app.add_handler(CommandHandler("unsubscribe", unsubscribe))
+
 
     logger.info("Security bot is running...")
     app.run_polling()
