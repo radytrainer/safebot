@@ -1,10 +1,7 @@
 import os
 import logging
-import datetime
-import random
 from dotenv import load_dotenv
 from typing import Dict, List
-from telegram.ext import JobQueue
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -66,9 +63,32 @@ TOPICS: Dict[str, Dict] = {
         "image": f"{ASSETS_IMG}/bank.jpg",
         "voice": f"{ASSETS_VOICE}/bank.ogg",
     },
+    "wifi": {
+        "keywords": ["wifi", "wi-fi", "public wifi", "wireless", "hotspot"],
+        "text": "📶 Public Wi-Fi Security Tips:\n"
+                "• Avoid logging into bank or sensitive accounts on public Wi-Fi.\n"
+                "• Use a VPN (Virtual Private Network) for extra protection.\n"
+                "• Always turn off 'Auto-Connect to Wi-Fi' on your phone.\n"
+                "• Check the official Wi-Fi name with staff (hackers often make fake hotspots).\n"
+                "• Prefer using your mobile data when handling important tasks.",
+        "image": f"{ASSETS_IMG}/wifi.jpg",
+        "voice": f"{ASSETS_VOICE}/wifi.ogg",
+    },
+        "data-security": {
+        "keywords": ["data", "information", "security", "encryption", "protect data"],
+        "text": "🔒 Information / Data Security:\n"
+                "• Use strong encryption to protect data at rest (stored on devices).\n"
+                "• Always encrypt data in transit (when sending online).\n"
+                "• Do not store sensitive information in plain text.\n"
+                "• Use HTTPS websites and secure email services.\n"
+                "• Regularly back up important files to a safe location.",
+        "image": f"{ASSETS_IMG}/data_security.jpg",
+        "voice": f"{ASSETS_VOICE}/data_security.ogg",
+    },
+
 }
 
-TOPIC_ORDER: List[str] = ["2fa", "phishing", "password", "sim-swap", "lost-phone", "bank"]
+TOPIC_ORDER: List[str] = ["2fa", "phishing", "password", "sim-swap", "lost-phone", "bank", "wifi", "data-security"]
 
 # ── Helper Functions ─────────────────────────────────────────────────────
 def build_main_menu() -> InlineKeyboardMarkup:
@@ -81,7 +101,9 @@ def build_main_menu() -> InlineKeyboardMarkup:
             "password": "គន្លឺះបង្កើតពាក្យសម្ងាត់",
             "sim-swap": "SIM-Swap Defense",
             "lost-phone": "Lost Phone",
-            "bank": "គន្លឹះសុវត្ថិភាពពេលប្រើប្រាស់ធនាគារ",
+            "bank": "គន្លឹះសុវត្ថិភាពធនាគារ",
+            "wifi": "Public Wi-Fi Security",
+            "data-security": "Information / Data Security",
         }[key]
         row.append(InlineKeyboardButton(text=label, callback_data=f"topic:{key}"))
         if len(row) == 2:
@@ -122,9 +144,6 @@ async def send_topic_reply(origin, context: ContextTypes.DEFAULT_TYPE, key: str)
     if topic.get("voice") and os.path.exists(topic["voice"]):
         await context.bot.send_voice(chat_id=chat_id, voice=topic["voice"])
 
-
-
-
 # ── Handlers ─────────────────────────────────────────────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -132,13 +151,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=build_main_menu(),
     )
 
-
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Try messages like:\n• 'Enable 2FA on Facebook?'\n• 'Is this link phishing?'\n• 'Protect my bank account'\n• 'My phone got stolen'",
+        "Try messages like:\n• 'Enable 2FA on Facebook?'\n• 'Is this link phishing?'\n• 'Protect my bank account'\n• 'My phone got stolen'\n• 'How to stay safe on public Wi-Fi?'",
         reply_markup=build_main_menu(),
     )
-
 
 async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -147,7 +164,6 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("topic:"):
         key = data.split(":", 1)[1]
         await send_topic_reply(query, context, key)
-
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text or ""
@@ -160,68 +176,15 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=build_main_menu(),
         )
 
-
 async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "I cannot verify images. Describe your issue in text (without sensitive info), and I’ll help."
     )
 
-
 async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "I cannot process voice messages yet. Please type your question instead."
     )
-
-# ── Daily Tips ───────────────────────────────────────────────
-
-async def send_daily_tip(context: ContextTypes.DEFAULT_TYPE):
-    """Send a random tip to subscribed users"""
-    job = context.job
-    chat_id = job.chat_id
-
-    key = random.choice(TOPIC_ORDER)  # pick random topic
-    topic = TOPICS[key]
-
-    await context.bot.send_message(chat_id=chat_id, text=f"🔔 Daily Security Tip:\n\n{topic['text']}")
-    if topic.get("image") and os.path.exists(topic["image"]):
-        await context.bot.send_photo(chat_id=chat_id, photo=topic["image"])
-
-
-async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Subscribe user to daily tips"""
-    chat_id = update.message.chat_id
-    job_queue: JobQueue = context.job_queue
-
-    # remove old job if exists
-    current_jobs = job_queue.get_jobs_by_name(str(chat_id))
-    for job in current_jobs:
-        job.schedule_removal()
-
-    # schedule new job (every day at 9AM)
-    job_queue.run_daily(
-        send_daily_tip,
-        time=datetime.time(hour=9, minute=0),
-        chat_id=chat_id,
-        name=str(chat_id),
-    )
-
-    await update.message.reply_text("✅ You are subscribed! You’ll get a daily security tip at 9AM.")
-
-
-async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Unsubscribe user from daily tips"""
-    chat_id = update.message.chat_id
-    job_queue: JobQueue = context.job_queue
-
-    current_jobs = job_queue.get_jobs_by_name(str(chat_id))
-    if not current_jobs:
-        await update.message.reply_text("❌ You are not subscribed.")
-        return
-
-    for job in current_jobs:
-        job.schedule_removal()
-
-    await update.message.reply_text("🚫 Subscription canceled. You won’t receive daily tips anymore.")
 
 # ── Main ────────────────────────────────────────────────────────────────
 def main():
@@ -236,13 +199,9 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, on_photo))
     app.add_handler(MessageHandler(filters.VOICE, on_voice))
     app.add_handler(CallbackQueryHandler(on_callback))
-    app.add_handler(CommandHandler("subscribe", subscribe))
-    app.add_handler(CommandHandler("unsubscribe", unsubscribe))
-
 
     logger.info("Security bot is running...")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
