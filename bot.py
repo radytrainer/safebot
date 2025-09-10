@@ -71,7 +71,7 @@ TOPICS: Dict[str, Dict] = {
                 "• Always turn off 'Auto-Connect to Wi-Fi' on your phone.\n"
                 "• Check the official Wi-Fi name with staff (hackers often make fake hotspots).\n"
                 "• Prefer using your mobile data when handling important tasks.",
-        "image": f"{ASSETS_IMG}/wi-fi.png",
+        "image": f"{ASSETS_IMG}/wifi.png",
         "voice": f"{ASSETS_VOICE}/wifi.ogg",
     },
         "data-security": {
@@ -82,7 +82,7 @@ TOPICS: Dict[str, Dict] = {
                 "• Do not store sensitive information in plain text.\n"
                 "• Use HTTPS websites and secure email services.\n"
                 "• Regularly back up important files to a safe location.",
-        "image": f"{ASSETS_IMG}/data_security.jpg",
+        "image": f"{ASSETS_IMG}/information.png",
         "voice": f"{ASSETS_VOICE}/data_security.ogg",
     },
 
